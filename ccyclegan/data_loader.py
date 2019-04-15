@@ -76,9 +76,9 @@ class DataLoader():
     def load_batch(self, batch_size=1, is_testing=False):
         if is_testing:
             raise Exception("not supported")
-        n_batches = int(len(self.img_vect_train) / batch_size)
-        total_samples = n_batches * batch_size
-        for i in range(n_batches):
+        self.n_batches = int(len(self.img_vect_train) / batch_size)
+        total_samples = self.n_batches * batch_size
+        for i in range(self.n_batches):
             idx = np.random.choice(self.img_vect_test.shape[0],size=batch_size)
             if is_testing: 
                 batch_images = self.img_vect_test[idx]

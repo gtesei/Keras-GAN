@@ -29,6 +29,9 @@ class CCycleGAN():
         self.img_shape = (self.img_rows, self.img_cols, self.channels)
         self.num_classes = num_classes
         self.latent_dim = latent_dim
+        
+        ## dict
+        self.lab_dict = {0: "Angry", 1: "Disgust" , 2: "Fear" , 3: "Happy" , 4: "Sad" , 5: "Surprise" , 6: "Neutral"}
 
         # Configure data loader
         self.dataset_name = 'fer2013'
@@ -51,6 +54,8 @@ class CCycleGAN():
 
         # Build and compile the discriminators
         self.d = self.build_discriminator()
+        print("******** Discriminator ********")
+        self.d.summary()
         self.d.compile(loss='mse',
             optimizer=optimizer,
             metrics=['accuracy'])
@@ -62,6 +67,8 @@ class CCycleGAN():
 
         # Build the generators
         self.g = self.build_generator()
+        print("******** Generator ********")
+        self.g.summary()
 
         # Input images from both domains
         img = Input(shape=self.img_shape)
@@ -195,11 +202,12 @@ class CCycleGAN():
                 # ----------------------
 
                 # Translate images to opposite domain
-                fake = self.g.predict([labels1,imgs])
+                fakes = self.g.predict([labels1,imgs])
+                #print("fake",str(fake.shape))
 
                 # Train the discriminators (original images = real / translated = Fake)
                 d_loss_real = self.d.train_on_batch([labels1,imgs], valid)
-                d_loss_fake = self.d.train_on_batch([labels1,fake], fake)
+                d_loss_fake = self.d.train_on_batch([labels1,fakes], fake)
                 d_loss = 0.5 * np.add(d_loss_real, d_loss_fake)
 
 
@@ -221,48 +229,48 @@ class CCycleGAN():
                                                                             batch_i, self.data_loader.n_batches,
                                                                             d_loss[0], 100*d_loss[1],
                                                                             g_loss[0],
-                                                                            np.mean(g_loss[1:3]),
-                                                                            np.mean(g_loss[3:5]),
-                                                                            np.mean(g_loss[5:6]),
+                                                                            np.mean(g_loss[1:2]),
+                                                                            np.mean(g_loss[2:3]),
+                                                                            np.mean(g_loss[3:4]),
                                                                             elapsed_time))
 
                 # If at save interval => save generated image samples
                 if batch_i % sample_interval == 0:
                     #self.sample_images(epoch, batch_i)
                     pass
+        
 
     def sample_images(self, epoch, batch_i):
-        os.makedirs('images/%s' % self.dataset_name, exist_ok=True)
-        r, c = 2, 3
+        #os.makedirs('images/%s' % self.dataset_name, exist_ok=True)
+        r, c = 1, 3
 
-        imgs_A = self.data_loader.load_data(domain="A", batch_size=1, is_testing=True)
-        imgs_B = self.data_loader.load_data(domain="B", batch_size=1, is_testing=True)
+        labels0_ , imgs_ = self.data_loader.load_data(batch_size=1, is_testing=True)
+        labels1_ = self.generate_new_labels(labels0_)
 
         # Demo (for GIF)
         #imgs_A = self.data_loader.load_img('datasets/apple2orange/testA/n07740461_1541.jpg')
         #imgs_B = self.data_loader.load_img('datasets/apple2orange/testB/n07749192_4241.jpg')
 
         # Translate images to the other domain
-        fake_B = self.g_AB.predict(imgs_A)
-        fake_A = self.g_BA.predict(imgs_B)
+        fake_ = self.g.predict([imgs_,labels1_])
+      
         # Translate back to original domain
-        reconstr_A = self.g_BA.predict(fake_B)
-        reconstr_B = self.g_AB.predict(fake_A)
+        reconstr_ = self.g.predict([fake_,labels0_])
 
-        gen_imgs = np.concatenate([imgs_A, fake_B, reconstr_A, imgs_B, fake_A, reconstr_B])
+        gen_imgs = np.concatenate([imgs_, fake_, reconstr_])
 
         # Rescale images 0 - 1
         gen_imgs = 0.5 * gen_imgs + 0.5
 
-        titles = ['Original', 'Translated', 'Reconstructed']
+        titles = ['Original - label0:'+str(self.lab_dict[labels0_]), 'Translated - label1:'+str(self.lab_dict[labels0_]), 'Reconstructed']
         fig, axs = plt.subplots(r, c)
         cnt = 0
-        for i in range(r):
-            for j in range(c):
-                axs[i,j].imshow(gen_imgs[cnt])
-                axs[i, j].set_title(titles[j])
-                axs[i,j].axis('off')
-                cnt += 1
+        i = 0 
+        for j in range(c):
+            axs[i,j].imshow(gen_imgs[cnt])
+            axs[i, j].set_title(titles[j])
+            axs[i,j].axis('off')
+            cnt += 1
         fig.savefig("images/%s/%d_%d.png" % (self.dataset_name, epoch, batch_i))
         plt.close()
 
