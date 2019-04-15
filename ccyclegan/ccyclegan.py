@@ -183,7 +183,7 @@ class CCycleGAN():
             allowed_values = list(range(0, self.num_classes))
             allowed_values.remove(labels0[i])
             labels1.append(random.choice(allowed_values))
-        return np.array(labels0,'int32')
+        return np.array(labels1,'int32')
 
     def train(self, epochs, batch_size=1, sample_interval=50):
 
@@ -236,8 +236,8 @@ class CCycleGAN():
 
                 # If at save interval => save generated image samples
                 if batch_i % sample_interval == 0:
-                    #self.sample_images(epoch, batch_i)
-                    pass
+                    self.sample_images(epoch, batch_i)
+                    
         
 
     def sample_images(self, epoch, batch_i):
@@ -252,24 +252,26 @@ class CCycleGAN():
         #imgs_B = self.data_loader.load_img('datasets/apple2orange/testB/n07749192_4241.jpg')
 
         # Translate images to the other domain
-        fake_ = self.g.predict([imgs_,labels1_])
+        fake_ = self.g.predict([labels1_,imgs_])
       
         # Translate back to original domain
-        reconstr_ = self.g.predict([fake_,labels0_])
+        reconstr_ = self.g.predict([labels0_,fake_])
 
         gen_imgs = np.concatenate([imgs_, fake_, reconstr_])
 
         # Rescale images 0 - 1
         gen_imgs = 0.5 * gen_imgs + 0.5
 
-        titles = ['Original - label0:'+str(self.lab_dict[labels0_]), 'Translated - label1:'+str(self.lab_dict[labels0_]), 'Reconstructed']
+        titles = ['Orig-l0:'+str(self.lab_dict[labels0_.item(0)]), 'Trans-l1:'+str(self.lab_dict[labels1_.item(0)]), 'Reconstr.']
         fig, axs = plt.subplots(r, c)
         cnt = 0
-        i = 0 
+
+        if not os.path.exists( "images/%s/"% (self.dataset_name)):
+            os.makedirs( "images/%s/"% (self.dataset_name)  )
         for j in range(c):
-            axs[i,j].imshow(gen_imgs[cnt])
-            axs[i, j].set_title(titles[j])
-            axs[i,j].axis('off')
+            axs[j].imshow(gen_imgs[cnt].reshape((self.img_rows,self.img_cols)),cmap='gray')
+            axs[j].set_title(titles[j])
+            axs[j].axis('off')
             cnt += 1
         fig.savefig("images/%s/%d_%d.png" % (self.dataset_name, epoch, batch_i))
         plt.close()
@@ -277,4 +279,4 @@ class CCycleGAN():
 
 if __name__ == '__main__':
     gan = CCycleGAN()
-    gan.train(epochs=200, batch_size=1, sample_interval=200)
+    gan.train(epochs=200, batch_size=64, sample_interval=200)
