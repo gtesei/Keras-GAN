@@ -80,7 +80,7 @@ class CCycleGAN():
         # Translate images back to original domain
         reconstr = self.g([label0,fake])
         # Identity mapping of images
-        img_id = self.g([label1,img])
+        img_id = self.g([label0,img])
 
         # For the combined model we will only train the generators
         self.d.trainable = False
@@ -196,6 +196,7 @@ class CCycleGAN():
         for epoch in range(epochs):
             for batch_i, (labels0 , imgs) in enumerate(self.data_loader.load_batch(batch_size)):
                 labels1 = self.generate_new_labels(labels0)
+                labels01 = self.generate_new_labels(labels0)
                 
                 # ----------------------
                 #  Train Discriminators
@@ -207,9 +208,9 @@ class CCycleGAN():
 
                 # Train the discriminators (original images = real / translated = Fake)
                 d_loss_real = self.d.train_on_batch([labels1,imgs], valid)
+                d_loss_real_fake = self.d.train_on_batch([labels01,imgs], fake)
                 d_loss_fake = self.d.train_on_batch([labels1,fakes], fake)
-                d_loss = 0.5 * np.add(d_loss_real, d_loss_fake)
-
+                d_loss = (1/3) * np.add(d_loss_real, d_loss_real_fake ,d_loss_fake)
 
                 # ------------------
                 #  Train Generators
