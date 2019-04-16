@@ -210,7 +210,7 @@ class CCycleGAN():
                 d_loss_real = self.d.train_on_batch([labels1,imgs], valid)
                 d_loss_real_fake = self.d.train_on_batch([labels01,imgs], fake)
                 d_loss_fake = self.d.train_on_batch([labels1,fakes], fake)
-                d_loss = (1/3) * np.add(d_loss_real, d_loss_real_fake ,d_loss_fake)
+                d_loss = (1/3) * np.add(np.add(d_loss_real, d_loss_real_fake) ,d_loss_fake)
 
                 # ------------------
                 #  Train Generators
