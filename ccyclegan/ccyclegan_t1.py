@@ -47,7 +47,7 @@ class CCycleGAN():
         self.df = 64
 
         # Loss weights
-        self.lambda_cycle = 10.0                    # Cycle-consistency loss
+        self.lambda_cycle = 1                    # Cycle-consistency loss
         self.lambda_id = 0.1 * self.lambda_cycle    # Identity loss
 
         optimizer = Adam(0.0002, 0.5)
@@ -96,7 +96,7 @@ class CCycleGAN():
         self.combined.compile(loss=['mse',
                                     'mae',
                                     'mae'],
-                            loss_weights=[  1, 
+                            loss_weights=[  20, 
                                             self.lambda_cycle, 
                                             self.lambda_id ],
                             optimizer=optimizer)
@@ -207,7 +207,7 @@ class CCycleGAN():
                 #print("fake",str(fake.shape))
 
                 # Train the discriminators (original images = real / translated = Fake)
-                d_loss_real = self.d.train_on_batch([labels1,imgs], valid)
+                d_loss_real = self.d.train_on_batch([labels0,imgs], valid)
                 d_loss_real_fake = self.d.train_on_batch([labels01,imgs], fake)
                 d_loss_fake = self.d.train_on_batch([labels1,fakes], fake)
                 d_loss = (1/3) * np.add(np.add(d_loss_real, d_loss_real_fake) ,d_loss_fake)
