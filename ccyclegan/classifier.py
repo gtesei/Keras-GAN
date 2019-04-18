@@ -155,6 +155,8 @@ class CCycleGAN():
         t0 = np.zeros(self.data_loader.lab_vect_test.shape[0])
         t = np.concatenate((t1,t0))
         
+        print("t:",t.shape)
+        print("t:",t)
         
         labels1_ = self.generate_new_labels(self.data_loader.lab_vect_test)
         
@@ -163,7 +165,20 @@ class CCycleGAN():
         
         pred_probs = np.concatenate((pred_prob_fake.squeeze(),pred_prob_valid_.squeeze()))
         
-        preds = pred_probs > 0.5 
+        preds = (pred_probs > 0.5)*1 
+        
+        print("preds:",preds.shape)
+        print("preds:",preds)
+        
+        print("pred_probs:",pred_probs.shape)
+        print("pred_probs:",pred_probs)
+        
+        print("acc[perfect]:",accuracy_score(t,t))
+        print("log_loss[perfect]:",log_loss(t,t))
+        print("roc_auc_score[perfect]:",roc_auc_score(t,t))
+        print("acc[perfect]:",accuracy_score(preds,preds))
+        #print("log_loss[perfect]:",log_loss(pred_probs,pred_probs))
+        #print("roc_auc_score[perfect]:",roc_auc_score(pred_probs,pred_probs))
         
         acc = accuracy_score(t,preds)
         ll = log_loss(t,pred_probs)
