@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd 
 
 class DataLoader():
-    def __init__(self, dataset_name, img_res=(128, 128,1),path_csv=None):
+    def __init__(self, dataset_name, img_res=(48, 48,1),path_csv=None):
         self.dataset_name = dataset_name
         self.img_res = img_res
         self.img_vect_train = None 
@@ -57,12 +57,27 @@ class DataLoader():
         assert i_test == len(self.lab_vect_test) 
         assert i_test == len(self.img_vect_test) 
                 
-    def load_data(self, batch_size=1, is_testing=False):
-        idx = np.random.choice(self.img_vect_test.shape[0],size=batch_size)
+    def load_data(self, domain=None, batch_size=1, is_testing=False):
         if is_testing: 
+            if domain is None:
+                idx = np.random.choice(self.img_vect_test.shape[0],size=batch_size)
+            else:
+                assert domain in [0,1,2,3,4,5,6]
+                idx0 = np.argwhere(self.lab_vect_test == domain) 
+                idx1 = np.random.choice(idx0.shape[0],size=batch_size)
+                idx = idx0[idx1]
+                idx = np.squeeze(idx)
             batch_images = self.img_vect_test[idx]
             labels = self.lab_vect_test[idx]
         else:
+            if domain is None:
+                idx = np.random.choice(self.lab_vect_train.shape[0],size=batch_size)
+            else:
+                assert domain in [0,1,2,3,4,5,6]
+                idx0 = np.argwhere(self.lab_vect_train == domain) 
+                idx1 = np.random.choice(idx0.shape[0],size=batch_size)
+                idx = idx0[idx1]
+                idx = np.squeeze(idx)
             batch_images = self.img_vect_train[idx]
             labels = self.lab_vect_train[idx]
         if is_testing:
@@ -70,27 +85,79 @@ class DataLoader():
         for i in range(batch_size):
             if np.random.random() > 0.5:
                 batch_images[i] = np.fliplr(batch_images[i])
-        ## TODO sampling of true false positives (e.g. false happy true faces)
+        batch_images = np.resize(batch_images,
+                                       (batch_size,self.img_res[0],self.img_res[1],self.img_res[2]))
         return labels , batch_images
 
-    def load_batch(self, batch_size=1, is_testing=False):
+    def load_batch(self, domain=None,batch_size=1, is_testing=False):
         if is_testing:
             raise Exception("not supported")
         self.n_batches = int(len(self.img_vect_train) / batch_size)
         total_samples = self.n_batches * batch_size
         for i in range(self.n_batches):
-            idx = np.random.choice(self.img_vect_test.shape[0],size=batch_size)
-            if is_testing: 
-                batch_images = self.img_vect_test[idx]
-                labels = self.lab_vect_test[idx]
+            if domain is None:
+                idx = np.random.choice(self.lab_vect_train.shape[0],size=batch_size)
             else:
-                batch_images = self.img_vect_train[idx]
-                labels = self.lab_vect_train[idx]
+                assert domain in [0,1,2,3,4,5,6]
+                idx0 = np.argwhere(self.lab_vect_train == domain) 
+                idx1 = np.random.choice(idx0.shape[0],size=batch_size)
+                idx = idx0[idx1]
+                idx = np.squeeze(idx)
+            batch_images = self.img_vect_train[idx]
+            labels = self.lab_vect_train[idx]
             for i in range(batch_size):
                 if np.random.random() > 0.5:
                     batch_images[i] = np.fliplr(batch_images[i])
+            batch_images = np.resize(batch_images,
+                                       (batch_size,self.img_res[0],self.img_res[1],self.img_res[2]))
             yield labels , batch_images
+    
+    
+    def load_batch_AB(self, domain=None,batch_size=1, is_testing=False):
+        if is_testing:
+            raise Exception("not supported")
+        self.n_batches = int(len(self.img_vect_train) / batch_size)
+        total_samples = self.n_batches * batch_size
+        for i in range(self.n_batches):
+            assert domain is not None 
+            assert type(domain) is list 
+            assert domain[0] in list(range(7))
+            assert domain[1] in list(range(7))
+            assert domain[0] != domain[1]
+            domain_A , domain_B = domain[0] , domain[1]
+            # domain_A
+            idx0 = np.argwhere(self.lab_vect_train == domain_A) 
+            idx1 = np.random.choice(idx0.shape[0],size=batch_size)
+            idx = idx0[idx1]
+            idx = np.squeeze(idx)
+            batch_images_A = self.img_vect_train[idx]
+            labels_A = self.lab_vect_train[idx]
+            for i in range(batch_size):
+                if np.random.random() > 0.5:
+                    batch_images_A[i] = np.fliplr(batch_images_A[i])
+            batch_images_A = np.resize(batch_images_A,
+                                       (batch_size,self.img_res[0],self.img_res[1],self.img_res[2]))
+            # domain_B
+            idx0 = np.argwhere(self.lab_vect_train == domain_B) 
+            idx1 = np.random.choice(idx0.shape[0],size=batch_size)
+            idx = idx0[idx1]
+            idx = np.squeeze(idx)
+            batch_images_B = self.img_vect_train[idx]
+            labels_B = self.lab_vect_train[idx]
+            for i in range(batch_size):
+                if np.random.random() > 0.5:
+                    batch_images_B[i] = np.fliplr(batch_images_B[i])
+            batch_images_B = np.resize(batch_images_B,
+                                       (batch_size,self.img_res[0],self.img_res[1],self.img_res[2]))
+            yield labels_A , batch_images_A , labels_B , batch_images_B
 
 
 if __name__ == 'main':
     dl = DataLoader(dataset_name='fer2013',img_res=(48,48,1))
+    for batch_i, (labels_A , batch_images_A , labels_B , batch_images_B) in enumerate(dl.load_batch_AB(domain=[1,2],batch_size=5)):
+        print(batch_i)
+        print(labels_A.shape)
+        print(batch_images_A.shape)
+        print(labels_B.shape)
+        print(batch_images_B.shape)
+        break 

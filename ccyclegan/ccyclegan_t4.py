@@ -7,27 +7,37 @@ from keras.layers import Input, Dense, Reshape, Flatten, Dropout, Concatenate
 from keras.layers import BatchNormalization, Activation, ZeroPadding2D
 from keras.layers.advanced_activations import LeakyReLU
 from keras.layers.convolutional import UpSampling2D, Conv2D
+from keras.layers import BatchNormalization, Activation, Embedding, ZeroPadding2D
 from keras.models import Sequential, Model
 from keras.optimizers import Adam
+from keras.layers import Input, Dense, Reshape, Flatten, Dropout, multiply
+from keras.layers import Reshape
 import datetime
 import matplotlib.pyplot as plt
 import sys
 from data_loader import DataLoader
 import numpy as np
 import os
+import random 
 
 class CycleGAN():
-    def __init__(self):
+    def __init__(self,domain_A=6,domain_B=3,img_rows = 48,img_cols = 48,channels = 1, num_classes=7, latent_dim=100):
         # Input shape
-        self.img_rows = 128
-        self.img_cols = 128
-        self.channels = 3
+        self.domain_A = domain_A
+        self.domain_B = domain_B
+        self.img_rows = img_rows
+        self.img_cols = img_cols
+        self.channels = channels
         self.img_shape = (self.img_rows, self.img_cols, self.channels)
+        self.num_classes = num_classes
+        self.latent_dim = latent_dim
+        
+        ## dict
+        self.lab_dict = {0: "Angry", 1: "Disgust" , 2: "Fear" , 3: "Happy" , 4: "Sad" , 5: "Surprise" , 6: "Neutral"}
 
         # Configure data loader
-        self.dataset_name = 'apple2orange'
-        self.data_loader = DataLoader(dataset_name=self.dataset_name,
-                                      img_res=(self.img_rows, self.img_cols))
+        self.dataset_name = 'fer2013'
+        self.data_loader = DataLoader(dataset_name=self.dataset_name,img_res=self.img_shape)
 
 
         # Calculate output shape of D (PatchGAN)
@@ -146,6 +156,8 @@ class CycleGAN():
             if normalization:
                 d = InstanceNormalization()(d)
             return d
+        
+        
 
         img = Input(shape=self.img_shape)
 
@@ -167,7 +179,7 @@ class CycleGAN():
         fake = np.zeros((batch_size,) + self.disc_patch)
 
         for epoch in range(epochs):
-            for batch_i, (imgs_A, imgs_B) in enumerate(self.data_loader.load_batch(batch_size)):
+            for batch_i, (labels_A, imgs_A , labels_B , imgs_B) in enumerate(self.data_loader.load_batch_AB(domain=[self.domain_A,self.domain_B],batch_size=batch_size)):
 
                 # ----------------------
                 #  Train Discriminators
@@ -221,8 +233,11 @@ class CycleGAN():
         os.makedirs('images/%s' % self.dataset_name, exist_ok=True)
         r, c = 2, 3
 
-        imgs_A = self.data_loader.load_data(domain="A", batch_size=1, is_testing=True)
-        imgs_B = self.data_loader.load_data(domain="B", batch_size=1, is_testing=True)
+        labels_A, imgs_A = self.data_loader.load_data(domain=self.domain_A, batch_size=1, is_testing=True)
+        labels_B, imgs_B = self.data_loader.load_data(domain=self.domain_B, batch_size=1, is_testing=True)
+        
+        assert labels_A == self.domain_A
+        assert labels_B == self.domain_B
 
         # Demo (for GIF)
         #imgs_A = self.data_loader.load_img('datasets/apple2orange/testA/n07740461_1541.jpg')
@@ -240,7 +255,7 @@ class CycleGAN():
         # Rescale images 0 - 1
         gen_imgs = 0.5 * gen_imgs + 0.5
 
-        titles = ['Original', 'Translated', 'Reconstructed']
+        titles = ['Orig['+self.domain_A+'/'+self.domain_B+']', 'Trans['+self.domain_B+'/'+self.domain_A+']', 'Recon['+self.domain_A+'/'+self.domain_B+']']
         fig, axs = plt.subplots(r, c)
         cnt = 0
         for i in range(r):
