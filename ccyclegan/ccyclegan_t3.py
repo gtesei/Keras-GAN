@@ -178,7 +178,8 @@ class CCycleGAN():
         d5 = Dense(128)(validity)
         d6 = LeakyReLU(alpha=0.2)(d5)
         d7 = Dropout(0.4)(d6)
-        d8 = Dense(1, activation='sigmoid')(d7)
+        d77 = Flatten()(d7)
+        d8 = Dense(1, activation='sigmoid')(d77)
 
         return Model([label,img], d8)
     
@@ -199,7 +200,7 @@ class CCycleGAN():
         fake = np.zeros((batch_size,1) )
 
         for epoch in range(epochs):
-            for batch_i, (labels0 , imgs) in enumerate(self.data_loader.load_batch(batch_size)):
+            for batch_i, (labels0 , imgs) in enumerate(self.data_loader.load_batch(batch_size=batch_size)):
                 labels1 = self.generate_new_labels(labels0)
                 labels01 = self.generate_new_labels(labels0)
                 
