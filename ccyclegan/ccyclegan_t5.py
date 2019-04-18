@@ -12,6 +12,7 @@ from keras.models import Sequential, Model
 from keras.optimizers import Adam
 from keras.layers import Input, Dense, Reshape, Flatten, Dropout, multiply
 from keras.layers import Reshape
+from keras.layers.merge import concatenate
 import datetime
 import matplotlib.pyplot as plt
 import sys
@@ -21,7 +22,7 @@ import os
 import random 
 
 class CCycleGAN():
-    def __init__(self,img_rows = 48,img_cols = 48,channels = 1, num_classes=7, latent_dim=100):
+    def __init__(self,img_rows = 48,img_cols = 48,channels = 1, num_classes=7, latent_dim=99):
         # Input shape
         self.img_rows = img_rows
         self.img_cols = img_cols
@@ -80,7 +81,7 @@ class CCycleGAN():
         # Translate images back to original domain
         reconstr = self.g([label0,fake])
         # Identity mapping of images
-        img_id = self.g([label0,img])
+        #img_id = self.g([label0,img])
 
         # For the combined model we will only train the generators
         self.d.trainable = False
@@ -91,14 +92,11 @@ class CCycleGAN():
         # Combined model trains generators to fool discriminators
         self.combined = Model(inputs=[img,label0,label1],
                               outputs=[ valid, 
-                                        reconstr, 
-                                        img_id])
+                                        reconstr])
         self.combined.compile(loss=['mse',
-                                    'mae',
                                     'mae'],
-                            loss_weights=[  20, 
-                                            self.lambda_cycle, 
-                                            self.lambda_id ],
+                            loss_weights=[  1, 
+                                            self.lambda_cycle],
                             optimizer=optimizer)
 
     def build_generator(self):
@@ -124,22 +122,24 @@ class CCycleGAN():
         # Image input
         img = Input(shape=self.img_shape)
         
-        label = Input(shape=(1,), dtype='int32')
-        label_embedding = Flatten()(Embedding(self.num_classes, np.prod(self.img_shape))(label))
-        
-        flat_img = Flatten()(img)
-        
-        model_input = multiply([flat_img, label_embedding])
-        d0 = Reshape(self.img_shape)(model_input)
-
         # Downsampling
-        d1 = conv2d(d0, self.gf)
+        d1 = conv2d(img, self.gf)
         d2 = conv2d(d1, self.gf*2)
         d3 = conv2d(d2, self.gf*4)
         d4 = conv2d(d3, self.gf*8)
+        
+        ###
+        label = Input(shape=(1,), dtype='int32')
+        label_embedding = Flatten()(Embedding(self.num_classes, self.latent_dim)(label))
+        
+        latent_vect = Flatten()(d4)
+        latent_concat = concatenate([latent_vect, label_embedding])
+        
+        d5 = Reshape((3, 3, -1))(latent_concat)
+        ###
 
         # Upsampling
-        u1 = deconv2d(d4, d3, self.gf*4)
+        u1 = deconv2d(d5, d3, self.gf*4)
         u2 = deconv2d(u1, d2, self.gf*2)
         u3 = deconv2d(u2, d1, self.gf)
 
@@ -219,20 +219,18 @@ class CCycleGAN():
                 # Train the generators
                 g_loss = self.combined.train_on_batch([imgs, labels0, labels1],
                                                         [valid,
-                                                        imgs, 
                                                         imgs])
 
                 elapsed_time = datetime.datetime.now() - start_time
 
                 # Plot the progress
-                print ("[Epoch %d/%d] [Batch %d/%d] [D loss: %f, acc: %3d%%] [G loss: %05f, adv: %05f, recon: %05f, id: %05f] time: %s " \
+                print ("[Epoch %d/%d] [Batch %d/%d] [D loss: %f, acc: %3d%%] [G loss: %05f, adv: %05f, recon: %05f] time: %s " \
                                                                         % ( epoch, epochs,
                                                                             batch_i, self.data_loader.n_batches,
                                                                             d_loss[0], 100*d_loss[1],
                                                                             g_loss[0],
                                                                             np.mean(g_loss[1:2]),
                                                                             np.mean(g_loss[2:3]),
-                                                                            np.mean(g_loss[3:4]),
                                                                             elapsed_time))
 
                 # If at save interval => save generated image samples

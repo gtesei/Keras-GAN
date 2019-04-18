@@ -2,6 +2,7 @@ import scipy
 from glob import glob
 import numpy as np
 import pandas as pd 
+import matplotlib.pyplot as plt
 
 class DataLoader():
     def __init__(self, dataset_name, img_res=(48, 48,1),path_csv=None):
@@ -13,6 +14,10 @@ class DataLoader():
         self.lab_vect_test = None 
         self.path_csv = path_csv 
         self._load_internally()
+        
+        ## dict
+        self.lab_dict = {0: "Angry", 1: "Disgust" , 2: "Fear" , 3: "Happy" , 4: "Sad" , 5: "Surprise" , 6: "Neutral"}
+
     
     def _load_internally(self):
         print(">> loading "+str(self.dataset_name)+" ...") 
@@ -99,7 +104,7 @@ class DataLoader():
             if domain is None:
                 idx = np.random.choice(self.lab_vect_train.shape[0],size=batch_size)
             else:
-                assert domain in [0,1,2,3,4,5,6]
+                assert domain in list(range(7))
                 idx0 = np.argwhere(self.lab_vect_train == domain) 
                 idx1 = np.random.choice(idx0.shape[0],size=batch_size)
                 idx = idx0[idx1]
@@ -153,12 +158,55 @@ class DataLoader():
             yield labels_A , batch_images_A , labels_B , batch_images_B
 
 
-if __name__ == 'main':
+if __name__ == '__main__':
     dl = DataLoader(dataset_name='fer2013',img_res=(48,48,1))
-    for batch_i, (labels_A , batch_images_A , labels_B , batch_images_B) in enumerate(dl.load_batch_AB(domain=[1,2],batch_size=5)):
-        print(batch_i)
-        print(labels_A.shape)
-        print(batch_images_A.shape)
-        print(labels_B.shape)
-        print(batch_images_B.shape)
-        break 
+    for batch_i, (labels_A , batch_images_A , labels_B , batch_images_B) in enumerate(dl.load_batch_AB(domain=[6,3],batch_size=5)):
+        print("batch_i:",batch_i)
+        print("labels_A:",labels_A.shape)
+        print("batch_images_A:",batch_images_A.shape)
+        print("labels_B",labels_B.shape)
+        print("batch_images_B:",batch_images_B.shape)
+        fig, axs = plt.subplots(2, 2)
+        #
+        axs[0,0].imshow( batch_images_A[0].squeeze() , cmap='gray')
+        axs[0,0].set_title(dl.lab_dict[labels_A[0]])
+        axs[0,0].axis('off')
+        #
+        axs[0,1].imshow( batch_images_A[1].squeeze() , cmap='gray')
+        axs[0,1].set_title(dl.lab_dict[labels_A[1]])
+        axs[0,1].axis('off')
+        #
+        axs[1,0].imshow( batch_images_B[0].squeeze() , cmap='gray')
+        axs[1,0].set_title(dl.lab_dict[labels_B[0]])
+        axs[1,0].axis('off')
+        #
+        axs[1,1].imshow( batch_images_B[1].squeeze() , cmap='gray')
+        axs[1,1].set_title(dl.lab_dict[labels_B[1]])
+        axs[1,1].axis('off')
+        break
+    plt.show() 
+    for batch_i, (labels , batch_images) in enumerate(dl.load_batch(batch_size=5)):
+        print("batch_i:",batch_i)
+        print("labels:",labels.shape)
+        print("batch_images:",batch_images.shape)
+        fig, axs = plt.subplots(2, 2)
+        #
+        axs[0,0].imshow( batch_images[0].squeeze() , cmap='gray')
+        axs[0,0].set_title(dl.lab_dict[labels[0]])
+        axs[0,0].axis('off')
+        #
+        axs[0,1].imshow( batch_images[1].squeeze() , cmap='gray')
+        axs[0,1].set_title(dl.lab_dict[labels[1]])
+        axs[0,1].axis('off')
+        #
+        axs[1,0].imshow( batch_images[2].squeeze() , cmap='gray')
+        axs[1,0].set_title(dl.lab_dict[labels[2]])
+        axs[1,0].axis('off')
+        #
+        axs[1,1].imshow( batch_images[3].squeeze() , cmap='gray')
+        axs[1,1].set_title(dl.lab_dict[labels[3]])
+        axs[1,1].axis('off')
+        break
+    plt.show() 
+        
+         
