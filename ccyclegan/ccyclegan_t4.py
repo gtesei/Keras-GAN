@@ -255,12 +255,14 @@ class CycleGAN():
         # Rescale images 0 - 1
         gen_imgs = 0.5 * gen_imgs + 0.5
 
-        titles = ['Orig['+self.domain_A+'/'+self.domain_B+']', 'Trans['+self.domain_B+'/'+self.domain_A+']', 'Recon['+self.domain_A+'/'+self.domain_B+']']
+        titles = ['Orig['+str(self.domain_A)+'/'+str(self.domain_B)+']', 'Trans['+str(self.domain_B)+'/'+str(self.domain_A)+']', 'Recon['+str(self.domain_A)+'/'+str(self.domain_B)+']']
         fig, axs = plt.subplots(r, c)
         cnt = 0
         for i in range(r):
             for j in range(c):
-                axs[i,j].imshow(gen_imgs[cnt])
+                #print("gen_imgs[cnt]:",gen_imgs[cnt].shape)
+                #print("resize:",np.resize(gen_imgs[cnt],self.img_shape).shape)
+                axs[i,j].imshow( gen_imgs[cnt].squeeze() , cmap='gray')
                 axs[i, j].set_title(titles[j])
                 axs[i,j].axis('off')
                 cnt += 1
@@ -270,4 +272,4 @@ class CycleGAN():
 
 if __name__ == '__main__':
     gan = CycleGAN()
-    gan.train(epochs=200, batch_size=1, sample_interval=200)
+    gan.train(epochs=200, batch_size=1, sample_interval=3000)
