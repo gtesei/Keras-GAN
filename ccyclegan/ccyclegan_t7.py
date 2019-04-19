@@ -317,7 +317,7 @@ class CCycleGAN():
         if not os.path.exists( "images/%s/"% (self.dataset_name)):
             os.makedirs( "images/%s/"% (self.dataset_name)  )
         for j in range(c):
-            axs[j].imshow(   cv2.cvtColor(gen_imgs[cnt].squeeze(),cv2.COLOR_BGR2GRAY),  cmap='gray'  )
+            axs[j].imshow(   gen_imgs[cnt].squeeze(),  cmap='gray'  )
             axs[j].set_title(titles[j])
             axs[j].axis('off')
             cnt += 1

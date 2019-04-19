@@ -87,15 +87,15 @@ class CCycleGAN():
         valid = np.ones((batch_size,1))
         fake = np.zeros((batch_size,1))
         
-        earlystopper = EarlyStopping(patience=20, verbose=1,monitor='val_dense_24_acc',mode='max')
-        checkpointer = ModelCheckpoint(self.PREFIX+'classifier_2.h5', verbose=1, save_best_only=True,monitor='val_dense_6_acc',mode='max')
-        reduce_lr = ReduceLROnPlateau(factor=0.2, patience=5, min_lr=0.00001, verbose=1,monitor='val_dense_6_acc',mode='max')
+        earlystopper = EarlyStopping(patience=20, verbose=1,monitor='val_acc',mode='max')
+        checkpointer = ModelCheckpoint(self.PREFIX+'classifier_2.h5', verbose=1, save_best_only=True,monitor='val_acc',mode='max')
+        reduce_lr = ReduceLROnPlateau(factor=0.2, patience=5, min_lr=0.00001, verbose=1,monitor='val_acc',mode='max')
         results = self.d.fit(self.data_loader.img_vect_train_RGB, 
                             np_utils.to_categorical(self.data_loader.lab_vect_train,num_classes=self.num_classes),
                     validation_data=[self.data_loader.img_vect_test_RGB,
                                      np_utils.to_categorical(self.data_loader.lab_vect_test,num_classes=self.num_classes)],
                     batch_size=batch_size, epochs=epochs,
-                    callbacks=[earlystopper, checkpointer,reduce_lr])
+                    callbacks=[earlystopper, checkpointer,reduce_lr], shuffle=True)
         
 if __name__ == '__main__':
     gan = CCycleGAN()
