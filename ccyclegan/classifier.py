@@ -21,6 +21,13 @@ import numpy as np
 import os
 import random 
 from sklearn.metrics import accuracy_score, log_loss, roc_auc_score
+from keras.applications.resnet50 import ResNet50
+
+from keras.applications.inception_v3 import InceptionV3
+from keras.preprocessing import image
+from keras.models import Model
+from keras.layers import Dense, GlobalAveragePooling2D
+from keras import backend as K
 
 
 class CCycleGAN():
@@ -56,7 +63,7 @@ class CCycleGAN():
         optimizer = Adam(0.0002, 0.5)
 
         # Build and compile the discriminators
-        self.d = self.build_discriminator()
+        self.d = self.build_discriminator2()
         print("******** Discriminator ********")
         self.d.summary()
         self.d.compile(loss='binary_crossentropy',
@@ -83,7 +90,7 @@ class CCycleGAN():
         label = Input(shape=(1,), dtype='int32')
         label_embedding = Flatten()(Embedding(self.num_classes, np.prod(self.img_shape))(label))
         
-        flat_img = Flatten()(img)
+        flat_img = Flatten()(img)   
         
         model_input = multiply([flat_img, label_embedding])
         d0 = Reshape(self.img_shape)(model_input)
@@ -102,6 +109,33 @@ class CCycleGAN():
         d8 = Dense(1, activation='sigmoid')(d77)
 
         return Model([label,img], d8)
+    
+    
+    def build_discriminator2(self):
+
+        #img = Input(shape=self.img_shape)
+        
+        label = Input(shape=(1,), dtype='int32')
+        label_embedding = Flatten()(Embedding(self.num_classes, np.prod(self.img_shape))(label))
+        
+        #flat_img = Flatten()(img)   
+        
+        #model_input = multiply([flat_img, label_embedding])
+        
+        base_model  = ResNet50(weights= 'imagenet', include_top=False, input_shape= (48,48,3))
+        
+        # add a global spatial average pooling layer
+        x = base_model.output
+        x = GlobalAveragePooling2D()(x)
+        
+        #latent_vect = Flatten()(x)
+        latent_concat = concatenate([x, label_embedding])
+        # let's add a fully-connected layer
+        f = Dense(1024, activation='relu')(latent_concat)
+        # and a logistic layer -- let's say we have 200 classes
+        predictions = Dense(1, activation='sigmoid')(f)
+        
+        return Model([label,base_model.input], predictions)
 
     
     def generate_new_labels(self,labels0):
@@ -121,7 +155,7 @@ class CCycleGAN():
         fake = np.zeros((batch_size,1))
 
         for epoch in range(epochs):
-            for batch_i, (labels0 , imgs) in enumerate(self.data_loader.load_batch(batch_size=batch_size)):
+            for batch_i, (labels0 , imgs) in enumerate(self.data_loader.load_batch(batch_size=batch_size,convertRGB=True)):
                 labels1 = self.generate_new_labels(labels0)
                 labels01 = self.generate_new_labels(labels0)
                 
@@ -160,8 +194,10 @@ class CCycleGAN():
         
         labels1_ = self.generate_new_labels(self.data_loader.lab_vect_test)
         
-        pred_prob_fake = self.d.predict([labels1_,self.data_loader.img_vect_test])
-        pred_prob_valid_ = self.d.predict([self.data_loader.lab_vect_test,self.data_loader.img_vect_test])
+        test_imgs = self.data_loader.img_vect_test_RGB
+        
+        pred_prob_fake = self.d.predict([labels1_,test_imgs])
+        pred_prob_valid_ = self.d.predict([self.data_loader.lab_vect_test,test_imgs])
         
         pred_probs = np.concatenate((pred_prob_fake.squeeze(),pred_prob_valid_.squeeze()))
         

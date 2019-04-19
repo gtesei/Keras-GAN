@@ -4,6 +4,8 @@ import numpy as np
 import pandas as pd 
 import matplotlib.pyplot as plt
 
+import cv2
+
 class DataLoader():
     def __init__(self, dataset_name, img_res=(48, 48,1),path_csv=None):
         self.dataset_name = dataset_name
@@ -61,6 +63,10 @@ class DataLoader():
         assert i_train == len(self.lab_vect_train) 
         assert i_test == len(self.lab_vect_test) 
         assert i_test == len(self.img_vect_test) 
+        
+        self.img_vect_test_RGB = np.zeros((self.img_vect_test.shape[0],self.img_res[0],self.img_res[1],3))
+        for i in range(self.img_vect_test_RGB.shape[0]):
+            self.img_vect_test_RGB[i] = cv2.cvtColor(self.img_vect_test[i], cv2.COLOR_GRAY2RGB)
                 
     def load_data(self, domain=None, batch_size=1, is_testing=False):
         if is_testing: 
@@ -95,7 +101,7 @@ class DataLoader():
                 batch_images[i] = np.fliplr(batch_images[i])
         return labels , batch_images
 
-    def load_batch(self, domain=None,batch_size=1, is_testing=False):
+    def load_batch(self, domain=None,batch_size=1, is_testing=False , convertRGB=False):
         if is_testing:
             raise Exception("not supported")
         self.n_batches = int(len(self.img_vect_train) / batch_size)
@@ -116,6 +122,11 @@ class DataLoader():
                     batch_images[i] = np.fliplr(batch_images[i])
             batch_images = np.resize(batch_images,
                                        (batch_size,self.img_res[0],self.img_res[1],self.img_res[2]))
+            if convertRGB: 
+                _batch_images = np.zeros((batch_size,self.img_res[0],self.img_res[1],3))
+                for i in range(batch_size):
+                    _batch_images[i] = cv2.cvtColor(batch_images[i], cv2.COLOR_GRAY2RGB)
+                batch_images = _batch_images
             yield labels , batch_images
     
     
@@ -191,7 +202,9 @@ if __name__ == '__main__':
         print("batch_images:",batch_images.shape)
         fig, axs = plt.subplots(2, 2)
         #
-        axs[0,0].imshow( batch_images[0].squeeze() , cmap='gray')
+        aa = cv2.cvtColor(batch_images[0].squeeze(),cv2.COLOR_GRAY2RGB)
+        print("RGB image(0,0):",aa.shape)
+        axs[0,0].imshow( aa )
         axs[0,0].set_title(dl.lab_dict[labels[0]])
         axs[0,0].axis('off')
         #

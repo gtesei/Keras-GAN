@@ -243,7 +243,7 @@ class CCycleGAN():
         #os.makedirs('images/%s' % self.dataset_name, exist_ok=True)
         r, c = 1, 3
 
-        labels0_ , imgs_ = self.data_loader.load_data(batch_size=1, is_testing=False)
+        labels0_ , imgs_ = self.data_loader.load_data(batch_size=1, is_testing=True)
         labels1_ = self.generate_new_labels(labels0_)
 
         # Demo (for GIF)
