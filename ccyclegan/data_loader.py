@@ -68,7 +68,7 @@ class DataLoader():
         for i in range(self.img_vect_test_RGB.shape[0]):
             self.img_vect_test_RGB[i] = cv2.cvtColor(self.img_vect_test[i], cv2.COLOR_GRAY2RGB)
                 
-    def load_data(self, domain=None, batch_size=1, is_testing=False):
+    def load_data(self, domain=None, batch_size=1, is_testing=False,convertRGB=False):
         if is_testing: 
             if domain is None:
                 idx = np.random.choice(self.img_vect_test.shape[0],size=batch_size)
@@ -93,6 +93,12 @@ class DataLoader():
             labels = self.lab_vect_train[idx]
             
         batch_images = np.resize(batch_images,(batch_size,self.img_res[0],self.img_res[1],self.img_res[2]))
+        
+        if convertRGB: 
+            _batch_images = np.zeros((batch_size,self.img_res[0],self.img_res[1],3))
+            for i in range(batch_size):
+                _batch_images[i] = cv2.cvtColor(batch_images[i], cv2.COLOR_GRAY2RGB)
+            batch_images = _batch_images
         
         if is_testing:
             return labels , batch_images
