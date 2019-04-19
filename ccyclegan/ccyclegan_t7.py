@@ -29,6 +29,7 @@ from keras.models import Model
 from keras.layers import Dense, GlobalAveragePooling2D
 from keras import backend as K
 
+import cv2
 
 class CCycleGAN():
     def __init__(self,img_rows = 48,img_cols = 48,channels = 3, num_classes=7, latent_dim=99):
@@ -316,7 +317,7 @@ class CCycleGAN():
         if not os.path.exists( "images/%s/"% (self.dataset_name)):
             os.makedirs( "images/%s/"% (self.dataset_name)  )
         for j in range(c):
-            axs[j].imshow(gen_imgs[cnt].squeeze(),cmap='gray')
+            axs[j].imshow(   cv2.cvtColor(gen_imgs[cnt].squeeze(),cv2.COLOR_BGR2GRAY),  cmap='gray'  )
             axs[j].set_title(titles[j])
             axs[j].axis('off')
             cnt += 1
