@@ -116,7 +116,7 @@ class CCycleGAN():
         #img = Input(shape=self.img_shape)
         
         label = Input(shape=(1,), dtype='int32')
-        label_embedding = Flatten()(Embedding(self.num_classes, np.prod(self.img_shape))(label))
+        label_embedding = Flatten()(Embedding(self.num_classes, 100)(label))
         
         #flat_img = Flatten()(img)   
         
@@ -157,16 +157,28 @@ class CCycleGAN():
         for epoch in range(epochs):
             for batch_i, (labels0 , imgs) in enumerate(self.data_loader.load_batch(batch_size=batch_size,convertRGB=True)):
                 labels1 = self.generate_new_labels(labels0)
-                labels01 = self.generate_new_labels(labels0)
+                #labels01 = self.generate_new_labels(labels0)
+
+                idx = np.random.permutation(2*labels1.shape[0])
+
+                _labels = np.concatenate((labels0,labels1))
+                _imgs = np.concatenate((imgs,imgs))
+                _vf = np.concatenate((valid,fake))
+
+                _labels = _labels[idx]
+                _imgs = _imgs[idx]
+                _vf = _vf[idx]
                 
                 # ----------------------
                 #  Train Discriminators
                 # ----------------------
 
                 # Train the discriminators (original images = real / translated = Fake)
-                d_loss_real = self.d.train_on_batch([labels0,imgs], valid)
-                d_loss_real_fake = self.d.train_on_batch([labels01,imgs], fake)
-                d_loss = (1/2) * np.add(d_loss_real, d_loss_real_fake)
+                d_loss = self.d.train_on_batch([_labels,_imgs], _vf)
+
+                #d_loss_real = self.d.train_on_batch([labels0,imgs], valid)
+                #d_loss_real_fake = self.d.train_on_batch([labels01,imgs], fake)
+                #d_loss = (1/2) * np.add(d_loss_real, d_loss_real_fake)
 
               
                 elapsed_time = datetime.datetime.now() - start_time
@@ -187,7 +199,7 @@ class CCycleGAN():
     def sample_images(self, epoch, batch_i):
         t1 = np.ones(self.data_loader.lab_vect_test.shape[0])
         t0 = np.zeros(self.data_loader.lab_vect_test.shape[0])
-        t = np.concatenate((t1,t0))
+        t = np.concatenate((t0,t1))
         
         print("t:",t.shape)
         print("t:",t)
