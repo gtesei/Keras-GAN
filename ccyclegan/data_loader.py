@@ -67,6 +67,10 @@ class DataLoader():
         self.img_vect_test_RGB = np.zeros((self.img_vect_test.shape[0],self.img_res[0],self.img_res[1],3))
         for i in range(self.img_vect_test_RGB.shape[0]):
             self.img_vect_test_RGB[i] = cv2.cvtColor(self.img_vect_test[i], cv2.COLOR_GRAY2RGB)
+            
+        self.img_vect_train_RGB = np.zeros((self.img_vect_train.shape[0],self.img_res[0],self.img_res[1],3))
+        for i in range(self.img_vect_train_RGB.shape[0]):
+            self.img_vect_train_RGB[i] = cv2.cvtColor(self.img_vect_train[i], cv2.COLOR_GRAY2RGB)
                 
     def load_data(self, domain=None, batch_size=1, is_testing=False,convertRGB=False):
         if is_testing: 
