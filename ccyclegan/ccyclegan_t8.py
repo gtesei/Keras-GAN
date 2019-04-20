@@ -33,6 +33,8 @@ import cv2
 
 from keras.models import load_model
 
+from keras.utils import np_utils
+
 
 class CCycleGAN():
     def __init__(self,img_rows = 48,img_cols = 48,channels = 3, num_classes=7, latent_dim=99):
@@ -80,8 +82,11 @@ class CCycleGAN():
         #-------------------------
         
         self.pre_trained_classifier = load_model('saved_model/classifier_2.h5')
-        self.pre_trained_classifier.trainable = False
+        self.pre_trained_classifier.name="pre_trained_classifier"
+        for i, layer in enumerate(self.pre_trained_classifier.layers):
+            layer.name = 'layer_' + str(i)
         print("**************** pre-trained classifier **************")
+        self.pre_trained_classifier.trainable = False
         self.pre_trained_classifier.summary()
         
         # Build the generators
@@ -285,7 +290,7 @@ class CCycleGAN():
                 g_loss = self.combined.train_on_batch([imgs, labels0, labels1],
                                                         [valid,
                                                         imgs,
-                                                        labels1])
+                                                        np_utils.to_categorical(labels1,num_classes=self.num_classes)])
 
                 elapsed_time = datetime.datetime.now() - start_time
 
@@ -297,7 +302,7 @@ class CCycleGAN():
                                                                             g_loss[0],
                                                                             np.mean(g_loss[1:2]),
                                                                             np.mean(g_loss[2:3]),
-                                                                            np.mean(g_loss[3:4])
+                                                                            np.mean(g_loss[3:4]),
                                                                             elapsed_time))
 
                 # If at save interval => save generated image samples
