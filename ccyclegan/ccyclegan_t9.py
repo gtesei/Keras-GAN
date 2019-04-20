@@ -68,10 +68,11 @@ class CCycleGAN():
         optimizer = Adam(0.0002, 0.5)
 
         # Build and compile the discriminators
-        self.d = self.build_discriminator2()
+        self.d = self.build_discriminator()
         print("******** Discriminator ********")
         self.d.summary()
-        self.d.compile(loss='binary_crossentropy',
+        self.d.compile(loss=['mse','binary_crossentropy'],
+                       loss_weights=[1,1],
             optimizer=optimizer,
             metrics=['accuracy'])
 
@@ -203,7 +204,7 @@ class CCycleGAN():
 
         # Adversarial loss ground truths
         valid = np.ones((batch_size,) + self.disc_patch)
-        fake = np.zeros((batch_size,) + self.disc_patch)'
+        fake = np.zeros((batch_size,) + self.disc_patch)
         #valid = np.ones((batch_size,1))
         #fake = np.zeros((batch_size,1))
 
@@ -234,6 +235,7 @@ class CCycleGAN():
                 # One-hot encoding of labels
                 labels = to_categorical(labels0, num_classes=self.num_classes+1)
                 fake_labels = to_categorical(np.full((batch_size, 1), self.num_classes), num_classes=self.num_classes+1)
+                labels1_cat = to_categorical(labels1, num_classes=self.num_classes+1)
 
                 #Train the discriminators (original images = real / translated = Fake)
                 d_loss_real = self.d.train_on_batch(imgs, [valid, labels])
@@ -252,15 +254,15 @@ class CCycleGAN():
                 g_loss = self.combined.train_on_batch([imgs, labels0, labels1],
                                                         [valid,
                                                         imgs,
-                                                        labels1])
+                                                         labels1_cat])
 
                 elapsed_time = datetime.datetime.now() - start_time
 
                 # Plot the progress
-                print ("[Epoch %d/%d] [Batch %d/%d] [D loss: %f, acc: %3d%%] [G loss: %05f, adv: %05f, recon: %05f, pred_img: %05f] time: %s " \
+                print ("[Epoch %d/%d] [Batch %d/%d] [D loss: %f, D valid %f, ,acc: %3d%%] [G loss: %05f, adv: %05f, recon: %05f, pred_img: %05f] time: %s " \
                                                                         % ( epoch, epochs,
                                                                             batch_i, self.data_loader.n_batches,
-                                                                            d_loss[0], 100*d_loss[1],
+                                                                            d_loss[1], d_loss[0], 100*d_loss[3],
                                                                             g_loss[0],
                                                                             np.mean(g_loss[1:2]),
                                                                             np.mean(g_loss[2:3]),
